@@ -1,0 +1,5 @@
+### Upload a file
+POST http://localhost:3000/upload
+Content-Type: multipart/form-data
+
+file=@test.txt
