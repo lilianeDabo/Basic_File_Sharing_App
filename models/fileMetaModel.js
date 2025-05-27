@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const fileMetaSchema = new mongoose.Schema({
   fileId: {
     type: mongoose.Schema.Types.ObjectId,
-    required: true
+    required: true,
+    unique: true
   },
   uploader: String,
   description: String,

@@ -8,14 +8,21 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Connect to MongoDB
-connectDB();
-connectMongoose(process.env.MONGO_URI);
-
-// Use routes
-app.use('/', fileRoutes);
+// Middleware
+app.use(express.json());
 app.use(express.static('public'));
+app.use('/', fileRoutes);
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+// Wait for both connections before starting server
+Promise.all([
+  connectDB(),
+  connectMongoose(process.env.MONGO_URI)
+])
+.then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
+})
+.catch(err => {
+  console.error('❌ Error connecting to databases:', err);
 });

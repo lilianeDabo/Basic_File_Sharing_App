@@ -2,44 +2,110 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>File Uploader</title>
+  <title>File Sharing App</title>
   <style>
-    body { font-family: sans-serif; margin: 2rem; }
-    .result { margin-top: 1rem; padding: 1rem; border: 1px solid #ddd; }
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    h1 { color: #333; }
+    form, .files, .download, .delete {
+      margin-bottom: 20px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      background: #f9f9f9;
+    }
+    input[type="text"], input[type="file"] {
+      padding: 5px;
+      margin: 5px 0;
+    }
+    button {
+      padding: 8px 16px;
+      background: #28a745;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    button.delete-btn {
+      background: #dc3545;
+    }
   </style>
 </head>
 <body>
 
-  <h1>Upload a File</h1>
-  <form id="uploadForm">
-    <input type="file" id="fileInput" name="file" required />
+  <h1>📁 File Sharing App</h1>
+
+  <!-- Upload Form (POST /upload) -->
+  <form id="uploadForm" enctype="multipart/form-data">
+    <h3>Upload a File</h3>
+    <input type="file" name="file" required />
     <button type="submit">Upload</button>
   </form>
 
-  <div class="result" id="result"></div>
+  <!-- Fetch Files (GET /files) -->
+  <div class="files">
+    <h3>📄 Available Files</h3>
+    <button id="fetchFilesBtn">Load Files</button>
+    <ul id="fileList"></ul>
+  </div>
+
+  <!-- Download File (GET /files/:id/download) -->
+  <div class="download">
+    <h3>⬇️ Download a File</h3>
+    <input type="text" id="downloadId" placeholder="File ID" />
+    <button id="downloadBtn">Download</button>
+  </div>
+
+  <!-- Delete File (DELETE /files/:id) -->
+  <div class="delete">
+    <h3>🗑️ Delete a File</h3>
+    <input type="text" id="deleteId" placeholder="File ID" />
+    <button class="delete-btn" id="deleteBtn">Delete</button>
+  </div>
 
   <script>
-    const form = document.getElementById('uploadForm');
-    const resultDiv = document.getElementById('result');
-
-    form.addEventListener('submit', async (e) => {
+    // Upload File
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const formData = new FormData(e.target);
+      const res = await fetch('/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      alert(data.message);
+      e.target.reset();
+    });
 
-      const fileInput = document.getElementById('fileInput');
-      const formData = new FormData();
-      formData.append('file', fileInput.files[0]);
+    // Get All Files
+    document.getElementById('fetchFilesBtn').addEventListener('click', async () => {
+      const res = await fetch('/files');
+      const files = await res.json();
+      const fileList = document.getElementById('fileList');
+      fileList.innerHTML = '';
+      files.forEach(file => {
+        const li = document.createElement('li');
+        li.textContent = `${file.filename} (ID: ${file._id})`;
+        fileList.appendChild(li);
+      });
+    });
 
-      try {
-        const response = await fetch('http://localhost:3000/upload', {
-          method: 'POST',
-          body: formData
-        });
+    // Download File
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      const id = document.getElementById('downloadId').value;
+      if (id) {
+        window.open(`/files/${id}/download`, '_blank');
+      } else {
+        alert('Please enter a File ID to download.');
+      }
+    });
 
-        const data = await response.json();
-        resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
-
-      } catch (err) {
-        resultDiv.innerHTML = `<p style="color: red;">Error: ${err}</p>`;
+    // Delete File
+    document.getElementById('deleteBtn').addEventListener('click', async () => {
+      const id = document.getElementById('deleteId').value;
+      if (id) {
+        const res = await fetch(`/files/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        alert(data.message);
+      } else {
+        alert('Please enter a File ID to delete.');
       }
     });
   </script>
