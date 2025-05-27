@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>File Uploader</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    .result { margin-top: 1rem; padding: 1rem; border: 1px solid #ddd; }
+  </style>
+</head>
+<body>
+
+  <h1>Upload a File</h1>
+  <form id="uploadForm">
+    <input type="file" id="fileInput" name="file" required />
+    <button type="submit">Upload</button>
+  </form>
+
+  <div class="result" id="result"></div>
+
+  <script>
+    const form = document.getElementById('uploadForm');
+    const resultDiv = document.getElementById('result');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const fileInput = document.getElementById('fileInput');
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      try {
+        const response = await fetch('http://localhost:3000/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+        resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+
+      } catch (err) {
+        resultDiv.innerHTML = `<p style="color: red;">Error: ${err}</p>`;
+      }
+    });
+  </script>
+
+</body>
+</html>
