@@ -30,7 +30,10 @@
 </head>
 <body>
 
-  <h1>📁 File Sharing App</h1>
+  <h1>📁 NoSQL File Sharing App</h1>
+  <a href="/login.html" id="loginLink">Login</a>
+  <a href="/register.html" id="registerLink">Register</a>
+  <div id="authStatus"></div>
 
   <!-- Upload Form (POST /upload) -->
   <form id="uploadForm" enctype="multipart/form-data">
@@ -61,14 +64,33 @@
   </div>
 
   <script>
+    if (localStorage.getItem('token')) {
+      document.getElementById('loginLink').remove();
+      document.getElementById('registerLink').remove();
+
+      document.getElementById('authStatus').innerHTML = `
+        <p>You are logged in!</p>
+        <button onclick="logout()">Logout</button>
+      `;
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.reload();
+    }
+
     // Upload File
     document.getElementById('uploadForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(e.target);
-      const res = await fetch('/upload', {
+      const res = await fetch('/api/files/upload', {
         method: 'POST',
-        body: formData
+        body: formData,
+        headers: {
+          'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
       });
+      
       const data = await res.json();
       alert(data.message);
       e.target.reset();
@@ -76,7 +98,7 @@
 
     // Get All Files
     document.getElementById('fetchFilesBtn').addEventListener('click', async () => {
-      const res = await fetch('/files');
+      const res = await fetch('/api/files/files');
       const files = await res.json();
       const fileList = document.getElementById('fileList');
       fileList.innerHTML = '';
@@ -91,7 +113,7 @@
     document.getElementById('downloadBtn').addEventListener('click', () => {
       const id = document.getElementById('downloadId').value;
       if (id) {
-        window.open(`/files/${id}/download`, '_blank');
+        window.open(`/api/files/files/${id}/download`, '_blank');
       } else {
         alert('Please enter a File ID to download.');
       }
@@ -101,7 +123,12 @@
     document.getElementById('deleteBtn').addEventListener('click', async () => {
       const id = document.getElementById('deleteId').value;
       if (id) {
-        const res = await fetch(`/files/${id}`, { method: 'DELETE' });
+        const res = await fetch(`/api/files/files/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+          }
+        });
         const data = await res.json();
         alert(data.message);
       } else {

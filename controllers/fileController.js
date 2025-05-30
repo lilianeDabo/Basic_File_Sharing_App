@@ -10,9 +10,9 @@ exports.uploadFile = async (req, res) => {
     // Example: save extra metadata
   const fileMeta = new FileMeta({
     fileId: req.file.id,
-    uploader: 'Liliane',
+    uploader: req.user.id,
     description: 'A test upload file',
-    tags: ['test', 'upload']
+    tags: ['test', 'upload', 'userupload']
   });
 
   await fileMeta.save();
@@ -62,25 +62,21 @@ exports.downloadFile = async (req, res) => {
     const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
 
     const fileDoc = await db.collection('uploads.files').findOne({ _id: fileId });
-    console.log("📦 File document lookup result:", fileDoc);
+    if (!fileDoc) return res.status(404).json({ error: "File not found" });
 
-    if (!fileDoc) {
-      console.log("❌ File not found");
-      return res.status(404).json({ error: "File not found" });
+    const fileMeta = await FileMeta.findOne({ fileId });
+    if (fileMeta) {
+      fileMeta.downloads += 1;
+      await fileMeta.save();
     }
 
     res.set('Content-Type', fileDoc.contentType || 'application/octet-stream');
     res.set('Content-Disposition', `attachment; filename="${fileDoc.filename}"`);
 
     const downloadStream = bucket.openDownloadStream(fileId);
-
     downloadStream.on('error', (err) => {
       console.error('🚨 Download stream error:', err);
       res.status(500).json({ error: 'Error downloading file' });
-    });
-
-    downloadStream.on('open', () => {
-      console.log('✅ Download stream opened');
     });
 
     downloadStream.pipe(res);
@@ -91,7 +87,6 @@ exports.downloadFile = async (req, res) => {
   }
 };
 
-// Delete file by id
 exports.deleteFile = async (req, res) => {
   try {
     const db = getDB();
@@ -101,14 +96,18 @@ exports.deleteFile = async (req, res) => {
     const filesCollection = db.collection('uploads.files');
     const fileDoc = await filesCollection.findOne({ _id: fileId });
 
-    if (!fileDoc) {
-      return res.status(404).json({ error: "File not found" });
-    }
+    if (!fileDoc) return res.status(404).json({ error: "File not found" });
 
+    // Delete the file from GridFS
     await bucket.delete(fileId);
+
+    // Delete its metadata too
+    await FileMeta.deleteOne({ fileId: fileId });
+
     res.json({ message: "File deleted successfully" });
 
   } catch (err) {
+    console.error('🔥 Error deleting file:', err);
     res.status(500).json({ error: "Failed to delete file" });
   }
 };

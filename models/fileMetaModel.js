@@ -6,7 +6,11 @@ const fileMetaSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
-  uploader: String,
+  uploader: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   description: String,
   tags: [String],
   downloads: {
